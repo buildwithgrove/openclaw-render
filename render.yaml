@@ -9,7 +9,7 @@ services:
       - key: PORT
         value: "10000"
       - key: OPENCLAW_VERSION
-        value: "2026.4.20" # Use `latest` for the latest stable build
+        value: "2026.4.19-beta.2-slim" # Use `latest` for the latest stable build
       # Heap must stay below instance RAM (see https://render.com/docs/blueprint-spec#plan).
       - key: NODE_OPTIONS
         value: "--max-old-space-size=1024"

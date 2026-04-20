@@ -7,7 +7,13 @@
 
 **OpenClaw Render Blueprint**: This template defines a `render.yaml` file you can use to deploy [OpenClaw](https://github.com/openclaw/openclaw) on Render. It uses the official project's [container image](https://github.com/openclaw/openclaw/pkgs/container/openclaw).
 
-**OpenClaw Version**: By default, this template uses the `latest` tag. Override this by setting the `OPENCLAW_VERSION` environment variable to a specific version tag.
+## OpenClaw Version
+
+By default, this template uses the `latest` tag.
+
+Override this by setting the `OPENCLAW_VERSION` environment variable to a specific version tag.
+
+You can find all the latest Docker builds [here](https://github.com/openclaw/openclaw/pkgs/container/openclaw).
 
 ## How do I set up my RenderClaw?
 
