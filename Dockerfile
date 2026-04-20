@@ -27,6 +27,10 @@ COPY --from=proxy-builder /proxy-bin /usr/local/bin/proxy
 RUN printf '#!/bin/sh\nexec node /app/dist/index.js "$@"\n' > /usr/local/bin/openclaw \
   && chmod +x /usr/local/bin/openclaw
 
+# Boot-time seed script (idempotent; see entrypoint.sh for what it does).
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Gateway is Node; match render.yaml / NODE_OPTIONS (override via Render env).
 ENV NODE_OPTIONS="--max-old-space-size=3072"
 
@@ -36,4 +40,4 @@ EXPOSE 10000
 # Run as non-root for security (matching base image)
 USER node
 
-CMD ["/usr/local/bin/proxy"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

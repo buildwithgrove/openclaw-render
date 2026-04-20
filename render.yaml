@@ -6,20 +6,47 @@ services:
     plan: standard
     healthCheckPath: /health
     envVars:
+      # ── Runtime ──────────────────────────────────────────────────
+      # Gateway HTTP port. Must match Render's internal port expectation.
       - key: PORT
         value: "10000"
+      # OpenClaw container version. Use `latest` for the newest stable build,
+      # or pin a tag from https://github.com/openclaw/openclaw/pkgs/container/openclaw
       - key: OPENCLAW_VERSION
-        value: "2026.4.19-beta.2-slim" # Use `latest` for the latest stable build
-      # Heap must stay below instance RAM (see https://render.com/docs/blueprint-spec#plan).
+        value: "2026.4.19-beta.2-slim"
+      # Node heap ceiling. Must stay below instance RAM (see https://render.com/docs/blueprint-spec#plan).
       - key: NODE_OPTIONS
         value: "--max-old-space-size=1024"
+      # Logging verbosity. One of: silent | fatal | error | warn | info | debug | trace
+      # Default in-code is "info"; bump to "debug" when troubleshooting a deploy.
+      - key: OPENCLAW_LOG_LEVEL
+        value: "info"
+
+      # ── Persistence ──────────────────────────────────────────────
+      # OpenClaw state (openclaw.json, skills cache, auth). Lives on the mounted disk.
       - key: OPENCLAW_STATE_DIR
         value: /data/.openclaw
+      # Agent workspace root (files the agent reads/writes at runtime).
       - key: OPENCLAW_WORKSPACE_DIR
         value: /data/workspace
+
+      # ── Gateway Auth ─────────────────────────────────────────────
+      # Shared secret for the Control UI. Auto-generated per deploy; paste into
+      # the landing page to obtain the 30-day signed cookie session.
       - key: OPENCLAW_GATEWAY_TOKEN
         generateValue: true
-      # Primary AI providers (set at least one)
+
+      # ── Feature Enablement ───────────────────────────────────────
+      # Auto-enable bundled provider plugins AND channels whose env vars are set
+      # (e.g. setting ANTHROPIC_API_KEY flips the Anthropic provider on, setting
+      # TELEGRAM_BOT_TOKEN flips the Telegram channel on). Without this, configured
+      # keys do nothing until plugins are flipped manually in the Control UI.
+      - key: OPENCLAW_AUTO_ENABLE
+        value: "1"
+
+      # ── AI Providers ─────────────────────────────────────────────
+      # Set at least one. With OPENCLAW_AUTO_ENABLE=1, each populated key
+      # flips on its corresponding provider plugin at first boot.
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: OPENAI_API_KEY
@@ -33,6 +60,30 @@ services:
         sync: false
       - key: MINIMAX_API_KEY
         sync: false
+
+      # ── Messaging Channels ───────────────────────────────────────
+      # Telegram: bot token from @BotFather. Combined with OPENCLAW_AUTO_ENABLE=1,
+      # this auto-enables the telegram channel on boot. Declared in the plugin
+      # manifest at extensions/telegram/openclaw.plugin.json (channelEnvVars).
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      # WhatsApp: the whatsapp extension authenticates via QR pairing after boot,
+      # so no pre-set secret enables it from env alone. To enable by default:
+      #   (a) complete the QR flow once in the Control UI after deploy, or
+      #   (b) seed channels.whatsapp.enabled=true in openclaw.json on the mounted disk.
+      # Intentionally no WhatsApp env here.
+
+      # ── ClawHub (custom skills) ──────────────────────────────────
+      # Auth token for installing private/custom skills from clawhub.ai.
+      # Read by src/infra/clawhub.ts:resolveClawHubAuthToken. Required to install
+      # any private custom skill published to ClawHub by this account.
+      - key: OPENCLAW_CLAWHUB_TOKEN
+        sync: false
+      # Skills to install from ClawHub and mark enabled on every boot.
+      # Space-separated list of ClawHub slugs. Handled by entrypoint.sh —
+      # idempotent, failures are logged but do not block startup.
+      - key: OPENCLAW_SEED_SKILLS
+        value: "grove"
     disk:
       name: openclaw-data
       mountPath: /data
